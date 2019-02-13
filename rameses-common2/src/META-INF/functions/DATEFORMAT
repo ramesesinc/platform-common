@@ -1,0 +1,8 @@
+{
+  caption: 'DATEFORMAT',
+  description: 'returns the String result of a simple date pattern. See simple date format date patterns',
+  code: 'com.rameses.functions.DateFunc.dateStringFormat',
+  title: '@DATEFORMAT( date, pattern )', 
+  signature: '@DATEFORMAT( |, )', 
+  group: 'date' 
+}
