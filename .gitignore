@@ -6,6 +6,7 @@
 build-impl.xml~
 Thumbs.db
 *.lnk
+*~
 
 /**/dist
 /**/build

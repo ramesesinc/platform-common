@@ -15,6 +15,10 @@ package com.rameses.http;
  */
 public class AllConnectionFailed extends Exception {
     
+    public AllConnectionFailed() {
+        super();
+    }
+    
     public AllConnectionFailed(String msg) {
         super(msg);
     }
