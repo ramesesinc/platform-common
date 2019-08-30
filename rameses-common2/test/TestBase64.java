@@ -2,7 +2,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
-public final class MoneyUtil {
+public final class TestBase64 {
     public final static int DEFAULT_SCALE = 2;
     
     public static double round( double amount ) {

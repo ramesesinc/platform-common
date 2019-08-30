@@ -1,4 +1,4 @@
-import com.rameses.util.HTMLBuilder;
+import com.rameses.util.Base64Cipher;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,14 +23,19 @@ public class Test1 extends TestCase {
     public void testHello() {
         Map data = new LinkedHashMap();
         data.put("First Name", "Jayrome");
-        data.put("Last Name", "Jayrome");
+        data.put("Last Name", "MaÑana");
         
         Map addr = new HashMap();
         addr.put("Address 1", "cebu city");
         addr.put("Address 2", "negros oriental");
         data.put("Address", addr);
         
-        //System.out.println( HTMLBuilder.toHhtml(data) );
+        String s = "{lastname:'MaÑana', firstname: 'Jayrome'}";
+        
+        Base64Cipher bc = new Base64Cipher();
+        String b = bc.encode(s);
+        System.out.println(b);
+        
     }
     
 }

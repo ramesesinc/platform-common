@@ -170,7 +170,6 @@ public final class DateUtil {
             sDate.add(Calendar.DAY_OF_MONTH, 1);
             daysBetween++;
         }
-        
         return daysBetween;
     }
     
