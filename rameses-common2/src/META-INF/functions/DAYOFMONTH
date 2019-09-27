@@ -1,0 +1,8 @@
+{
+  caption: 'DAYOFMONTH',
+  description: 'returns the ordinal day of week in a month. Example returns 1st sunday of month. Day of week: 1=sunday..7=saturday',
+  code: 'com.rameses.functions.DateFunc.dayOfMonth',
+  title: '@DAYOFMONTH( ordinal, dayofweek, month, year )', 
+  signature: '@DAYOFMONTH( |,,, )', 
+  group: 'date' 
+}

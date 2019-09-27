@@ -248,4 +248,18 @@ public final class DateFunc {
             return null;
         }
     }
+    
+    public static Date dayOfMonth( int ord, int dow, int month, int year ) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.MONTH, month - 1);
+        cal.set(Calendar.YEAR, year );
+        cal.set(Calendar.DAY_OF_WEEK, dow );     
+        cal.set(Calendar.DAY_OF_WEEK_IN_MONTH, ord);
+        cal.set(Calendar.HOUR, 0 );  
+        cal.set(Calendar.MINUTE, 0 );  
+        cal.set(Calendar.SECOND, 0 );  
+        cal.set(Calendar.MILLISECOND, 0 );       
+        return cal.getTime();
+    }
+    
 }
