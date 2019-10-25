@@ -32,8 +32,10 @@ public class DefaultScriptServiceProxy extends AbstractServiceProxy  implements 
             params,
             this.env
         };
+        String path = "services";
         String appContext = (String) super.conf.get("app.context");
-        String path = "services/" + appContext+"/"+serviceName+"."+action;
+        if( appContext !=null) path += "/" + appContext;
+        path += "/"+serviceName+"."+action;
         String cluster = (String) super.conf.get("app.cluster");
         if( cluster !=null ) path = cluster + "/" + path;
         return client.post(path, args );

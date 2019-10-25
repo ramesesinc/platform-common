@@ -8,6 +8,9 @@
 package versioning;
 
 
+import com.rameses.service.DefaultScriptServiceProxy;
+import java.util.HashMap;
+import java.util.Map;
 import junit.framework.*;
 
 /**
@@ -58,4 +61,14 @@ public class VersionTest extends TestCase {
 //        q.applyChanges();
 //    }
 
+   public void testPush() throws Exception {
+       Map map = new HashMap();
+       map.put("app.host", "192.168.254.101:8070");
+       map.put("app.cluster","osiris3");
+       map.put("app.context", "etracs25" );
+       map.put("debug", true);
+       DefaultScriptServiceProxy df = new DefaultScriptServiceProxy("DateService", map, null);
+       System.out.println(df.invoke("getServerDate"));
+   }     
+    
 }
