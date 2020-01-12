@@ -1,13 +1,11 @@
 package com.rameses.server;
 
-import com.rameses.util.ConfigProperties;
 import com.rameses.util.Service;
 import java.io.File;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,9 +47,9 @@ public final class BootLoader
         initProviders();
         
         String baseURL = "file:///" + basedir;
-        ConfigProperties conf = new ConfigProperties(rundir + "/server.conf");
+        ServerConf.load( rundir + "/server.conf" ); 
         
-        Iterator entries = conf.getGroups().entrySet().iterator();
+        Iterator entries = ServerConf.getGroups().entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry entry = (Map.Entry) entries.next();
             String groupName = entry.getKey().toString();
@@ -181,9 +179,20 @@ public final class BootLoader
             String skey = str.substring(idx0+2, idx1); 
             builder.append(str.substring(startidx, idx0)); 
             
-            Object objval = conf.get(skey); 
-            if (objval == null) objval = System.getProperty(skey); 
+            Object objval = null; 
+            if ( skey.startsWith("@@")) {
+                String[] arr = skey.split(":");
+                String sname = (arr.length == 2 ? arr[1] : ""); 
+                Map group = ServerConf.getGroup(skey);
+                objval = group.get( sname ); 
+            } 
+            else { 
+                objval = conf.get(skey); 
+            } 
             
+            if (objval == null) { 
+                objval = System.getProperty(skey);
+            } 
             if (objval == null) { 
                 builder.append(str.substring(idx0, idx1+1)); 
             } else { 

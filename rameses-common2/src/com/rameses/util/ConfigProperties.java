@@ -34,6 +34,8 @@ public class ConfigProperties {
     private File file;
     private boolean updatable = true;
     
+    private Resolver resolver;
+    
     private ConfigProperties() {}
     
     public ConfigProperties(String filename) {
@@ -41,6 +43,9 @@ public class ConfigProperties {
     }
     
     public ConfigProperties(File sfile ) {
+        this( sfile, null ); 
+    }
+    public ConfigProperties(File sfile, Resolver resolver ) {
         try {
             this.file = sfile;
             if( file.getParentFile()!=null && !file.getParentFile().exists()) {
@@ -49,6 +54,7 @@ public class ConfigProperties {
             if(!file.exists()) { 
                 file.createNewFile();
             }
+            this.resolver = resolver;
             parse(new FileInputStream(file), null); 
             
         } catch(RuntimeException re) {
@@ -59,7 +65,11 @@ public class ConfigProperties {
     }
     
     public ConfigProperties(InputStream inp) {
+        this( inp, null ); 
+    }
+    public ConfigProperties(InputStream inp, Resolver resolver) {
         try {
+            this.resolver = resolver;
             updatable = false;
             parse(inp, null); 
         } catch(Exception e) {
@@ -68,7 +78,11 @@ public class ConfigProperties {
     }
     
     public ConfigProperties(URL u) {
+        this( u, null ); 
+    }
+    public ConfigProperties(URL u, Resolver resolver) {
         try {
+            this.resolver = resolver; 
             updatable = false;
             parse(u.openStream(), null);
         } catch(Exception e) {
@@ -259,6 +273,10 @@ public class ConfigProperties {
                 if (objval != null) { break; }
             }
             
+            if ( objval == null && resolver != null ) {
+                objval = resolver.resolve( skey ); 
+            }
+            
             if (objval == null) {
                 objval = System.getProperty(skey);
             } 
@@ -282,12 +300,24 @@ public class ConfigProperties {
         }
     }     
     
+    public static class Resolver {
+        public Object resolve( String name ) {
+            return null; 
+        }
+    }
     
     public static synchronized Parser newParser() {
         return new Parser();
     }
     
     public static class Parser {
+        
+        private Resolver _resolver;
+        
+        public Parser resolver( Resolver res ) {
+            this._resolver = res;
+            return this; 
+        }
         
         public Map parse(File file, Map ref) {
             try { 
@@ -308,6 +338,7 @@ public class ConfigProperties {
         
         public Map parse(InputStream inp, Map ref) {
             ConfigProperties conf = new ConfigProperties();
+            conf.resolver = _resolver; 
             conf.parse(inp, ref); 
 
             Map result = new LinkedHashMap(); 

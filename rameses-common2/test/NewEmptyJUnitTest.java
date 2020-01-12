@@ -16,11 +16,11 @@ public class NewEmptyJUnitTest extends TestCase {
         super(testName);
     }
 
-    protected void setUp() throws Exception {
+    public void test1() throws Exception {
+        String name = "@@";
+        if ( name.startsWith("@@")) {
+            name = name.substring(2).split(":")[0]; 
+        }
+        System.out.println( name );
     }
-
-    protected void tearDown() throws Exception {
-    }
-    
-
 }
