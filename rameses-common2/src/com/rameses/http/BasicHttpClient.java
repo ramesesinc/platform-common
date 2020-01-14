@@ -4,8 +4,8 @@
  */
 package com.rameses.http;
 
-import com.rameses.io.IOStream;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -14,10 +14,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
@@ -163,25 +165,15 @@ public class BasicHttpClient {
             } finally {
                 try { out.close(); }catch(Throwable t){;} 
             }
-          
-            BufferedReader reader = null; 
-            InputStreamReader inp = null;
-
+            
+            Object retVal = null;
             try {
-                inp = new InputStreamReader(conn.getInputStream(), "utf-8"); 
-                reader = new BufferedReader( inp );
-                
-                String readLine = null;
-                StringBuilder buff = new StringBuilder();
-                while ((readLine = reader.readLine()) != null) {
-                    buff.append( readLine ).append("\n");
-                }
-                return buff.toString(); 
+                retVal = readData(conn);
             } 
-            finally {
-                try { inp.close(); }catch(Throwable t){;} 
-                try { reader.close(); }catch(Throwable t){;} 
+            catch (Exception e) {
+                retVal = readError(conn);
             }
+            return retVal;
         } 
         catch (RuntimeException re) {
             throw re;
@@ -190,6 +182,42 @@ public class BasicHttpClient {
             throw new RuntimeException(t);
         }
     }
+    
+    private Object readData(HttpURLConnection conn) throws Exception {
+        Map data = new HashMap();
+        data.put("responsecode", conn.getResponseCode());
+        data.put("response", "OK");
+        data.put("data", readInputImpl(conn.getInputStream()));
+        return data;
+    }
+    
+    private Object readError(HttpURLConnection conn) throws Exception {
+        Map err = new HashMap();
+        err.put("responsecode", conn.getResponseCode());
+        err.put("response", conn.getResponseMessage());
+        err.put("error", readInputImpl(conn.getErrorStream()));
+        return err;
+    }
+    
+    private Object readInputImpl(InputStream inputs) throws Exception {
+        BufferedReader reader = null; 
+        InputStreamReader inp = null;
+        StringBuilder buff = new StringBuilder();
+        String readLine = null;
+        try {
+            inp = new InputStreamReader(inputs, "utf-8"); 
+            reader = new BufferedReader( inp );
+            while ((readLine = reader.readLine()) != null) {
+                buff.append( readLine ).append("\n");
+            }
+            return buff.toString();
+        } 
+        finally {
+            try { inp.close(); }catch(Throwable t){;} 
+            try { reader.close(); }catch(Throwable t){;} 
+        }
+    }
+    
     
     
     
@@ -228,8 +256,8 @@ public class BasicHttpClient {
             };
 
             // Install the all-trusting trust manager
-            SSLContext sslContext = SSLContext.getInstance( "SSL" );
-            sslContext.init( null, trustAllCerts, new java.security.SecureRandom() );
+            SSLContext sslContext = SSLContext.getInstance( "TLSv1.2" );
+            sslContext.init( new KeyManager[0], trustAllCerts, new java.security.SecureRandom() );
             // Create an ssl socket factory with our all-trusting manager
             return sslContext.getSocketFactory();  
         } catch(Throwable t) {
