@@ -39,7 +39,7 @@ public class NewEmptyJUnitTest extends TestCase {
         
         InputStream inps = getClass().getResourceAsStream("jsondata"); 
         Object data = IOStream.toByteArray(inps); 
-        
+                
         Map headers = new HashMap();
         headers.put("Authorization", "Basic cGstZW80c0wzOTNDV1U1S212ZUpVYVc4VjczMFRUZWkyelk4ekU0ZEhKRHhrRjo=");
         headers.put("Content-Type", "application/json; charset=UTF-8");            

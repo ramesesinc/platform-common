@@ -243,7 +243,18 @@ public class ConfigProperties {
         }
     }
     
+    private int resolve_value_stack_counter = 0;
     private Object resolveValue(Object value, Map[] refs) { 
+        resolve_value_stack_counter = 0;
+        return resolveValueImpl(value, refs); 
+    }
+    private Object resolveValueImpl(Object value, Map[] refs) { 
+        resolve_value_stack_counter += 1;
+        if ( resolve_value_stack_counter > 10 ) {
+            // could not resolve expression
+            return value; 
+        }
+        
         if (value == null) { 
             return null; 
         } else if (!(value instanceof String)) {
@@ -292,13 +303,34 @@ public class ConfigProperties {
             startidx = idx1+1; 
         } 
         
+        Object finalResult = null; 
         if (has_expression) {
             builder.append(str.substring(startidx));  
-            return builder.toString(); 
-        } else {
-            return value; 
+            finalResult = builder.toString(); 
+        } 
+        else {
+            finalResult = value;
         }
-    }     
+        
+        if ( finalResult != null && hasExpression( finalResult)) {
+            return resolveValueImpl( finalResult, refs ); 
+        } 
+        return finalResult;
+    } 
+    
+    private boolean hasExpression( Object value ) {
+        String str = (value == null ? null : value.toString()); 
+        if ( str == null || str.length() == 0 ) {
+            return false; 
+        }
+        
+        int idx0 = str.indexOf("${");
+        if (idx0 < 0) return false; 
+
+        int idx1 = str.indexOf("}", idx0); 
+        return (idx1 > 0); 
+    }
+
     
     public static class Resolver {
         public Object resolve( String name ) {
