@@ -9,9 +9,12 @@
 package com.rameses.http;
 
 import com.rameses.util.SealedMessage;
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
 import java.net.ConnectException;
@@ -21,6 +24,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.cert.X509Certificate;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
@@ -67,6 +71,8 @@ public class HttpClient implements Serializable {
     //by default the transfer type is encrypted
     private boolean encrypted = true;
     
+    private String contentType;
+    
     public HttpClient(String host) {
         this( host, false );
     }
@@ -106,6 +112,11 @@ public class HttpClient implements Serializable {
         this.outputHandler = h;
     }
     
+    public String getContentType() { return contentType; } 
+    public void setContentType( String contentType ) {
+        this.contentType = contentType;
+    }
+    
     /**********************************************
      * //GET METHODS
      *********************************************/
@@ -118,6 +129,10 @@ public class HttpClient implements Serializable {
     }
     
     public Object get(String path, Map params) throws Exception {
+        return get(path, params, null); 
+    }
+    
+    public Object get(String path, Map params, Map props) throws Exception {
         String parms = "";
         if( params !=null) parms = "?"+HttpClientUtils.stringifyParameters(params);
         LinkedList list = new LinkedList();
@@ -126,7 +141,7 @@ public class HttpClient implements Serializable {
             String p = (path!=null && path.trim().length()>0) ? "/" + path : "";
             list.add( protocol + "://" + s +  p + parms );
         }
-        return invoke(list, null, "GET");
+        return invoke(list, null, "GET", props);
     }
     
    
@@ -141,8 +156,12 @@ public class HttpClient implements Serializable {
     public Object post(String path) throws Exception {
         return post(path, null);
     }
-    
+
     public Object post(String path, Object args) throws Exception {
+        return post(path, args, null); 
+    } 
+    
+    public Object post(String path, Object args, Map props) throws Exception {
         LinkedList list = new LinkedList();
         for(String s: hosts) {
             //String ctx = (appContext!=null&&appContext.trim().length()>0) ? "/"+appContext : "";
@@ -152,12 +171,12 @@ public class HttpClient implements Serializable {
         if( !postAsObject && (args instanceof Map) ) {
             args = HttpClientUtils.stringifyParameters( (Map)args);
         }
-        return invoke(list, args, "POST");
+        return invoke(list, args, "POST", props);
     }
     
-    private Object invoke(Queue<String> queue, Object parms, String methodType) throws Exception { 
+    private Object invoke(Queue<String> queue, Object parms, String methodType, Map props) throws Exception { 
         try { 
-            return invokeImpl( queue, parms, methodType ); 
+            return invokeImpl( queue, parms, methodType, props ); 
         } catch( Exception ex ) {
             if ( 
                 (ex instanceof UnknownHostException) || 
@@ -166,7 +185,7 @@ public class HttpClient implements Serializable {
                 (ex instanceof SocketTimeoutException) 
             ) { 
                 try {
-                    return invokeImpl( queue, parms, methodType );
+                    return invokeImpl( queue, parms, methodType, props );
                 } catch(AllConnectionFailed ae) {
                     throw ex; 
                 } 
@@ -176,7 +195,7 @@ public class HttpClient implements Serializable {
         } 
     }
     
-    private Object invokeImpl(Queue<String> queue, Object parms, String methodType) throws Exception {
+    private Object invokeImpl(Queue<String> queue, Object parms, String methodType, Map props) throws Exception {
         HttpURLConnection conn = null;
         InputStream is = null;
         ObjectInputStream in = null;
@@ -197,13 +216,19 @@ public class HttpClient implements Serializable {
                 bypassSSLSecurityCheck(httpsc); 
             }
             
-            if( readTimeout > 0 ) conn.setReadTimeout(readTimeout);            
-            if( connectionTimeout > 0 ) conn.setConnectTimeout(connectionTimeout);
-            
-            conn.setDoOutput(true);
-            conn.setUseCaches(false);
             conn.setRequestMethod(methodType);
             
+            conn.setDoOutput(true);
+            conn.setDoInput(true); 
+            conn.setUseCaches(false);
+            
+            if( readTimeout > 0 ) { 
+                conn.setReadTimeout(readTimeout);
+            }            
+            if( connectionTimeout > 0 ) { 
+                conn.setConnectTimeout(connectionTimeout);
+            }
+
             boolean _asObject = postAsObject;
             if(!_asObject && parms==null) _asObject = true;
             if(!_asObject && !(parms instanceof String)) _asObject = true;            
@@ -220,30 +245,53 @@ public class HttpClient implements Serializable {
                 }
                 if(parms!=null) out.writeObject( parms );
                 out.flush();
-            } else if(methodType.equalsIgnoreCase("POST")) {
-                conn.setRequestProperty( "CONTENT-TYPE", "application/x-www-form-urlencoded");
-                OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
-                writer.write( (String)parms );
-                writer.flush();
+            } 
+            else if(methodType.equalsIgnoreCase("POST")) {
+                
+                String ctype = getContentType(); 
+                if ( ctype == null || ctype.length() == 0 ) {
+                    ctype = "application/x-www-form-urlencoded"; 
+                }
+                conn.setRequestProperty( "CONTENT-TYPE", ctype );
+                addRequestProperties(conn, props); 
+                
+                postString( conn, (String)parms );
             }
             else {
-                conn.setRequestProperty( "CONTENT-TYPE", "application/x-www-form-urlencoded");
+                String ctype = getContentType(); 
+                if ( ctype == null || ctype.length() == 0 ) {
+                    ctype = "application/x-www-form-urlencoded"; 
+                }
+                conn.setRequestProperty( "CONTENT-TYPE", ctype );
+                addRequestProperties(conn, props); 
             }
+            
             //read the input stream. we cannot use this
             try {
                 is = conn.getInputStream();
-            } catch(Exception e) {
-                InputStream es = conn.getErrorStream();
-                if ( es != null ) {
-                    String errMsg = conn.getHeaderField("Error-Message");
+            } 
+            catch(Throwable t) {
+                is = conn.getErrorStream();
+                if ( is != null ) {
                     Exception orig = null;
+                    String errMsg = conn.getHeaderField("Error-Message");
                     if ( errMsg != null ) {
                         orig = new Exception(errMsg);
                     }
+                    else {
+                        errMsg = getErrorMessage( is ); 
+                    }
+                    
+                    if ( isDebug()) {
+                        System.out.println("Response Code: "+ conn.getResponseCode() + " ("+ conn.getResponseMessage() +")"); 
+                        System.out.println("Error-Message -> " + errMsg);
+                    }
+                    
                     throw new ResponseError(conn.getResponseCode(), conn.getResponseMessage(), orig);
-                } else { 
-                    throw e; 
                 } 
+                else {
+                    throw (Exception) t;
+                }
             } 
             
             if( outputHandler ==null ) {
@@ -346,6 +394,54 @@ public class HttpClient implements Serializable {
             return sslContext.getSocketFactory();  
         } catch(Throwable t) {
             return null; 
+        }
+    }
+    
+    private String getErrorMessage( InputStream inp ) throws Exception { 
+        if ( inp == null ) {
+            return null;
+        } 
+        
+        BufferedReader br = null; 
+        try {
+            br = new BufferedReader(new InputStreamReader(inp, "utf-8")); 
+
+            String responseLine = null;
+            StringBuilder buff = new StringBuilder();
+            while ((responseLine = br.readLine()) != null) {
+                buff.append(responseLine.trim());
+            }
+            return buff.toString();
+        } 
+        finally {
+            try { inp.close(); }catch(Throwable t){;} 
+            try { br.close(); }catch(Throwable t){;} 
+        }
+    }
+    
+    private void addRequestProperties( HttpURLConnection conn, Map props ) {
+        if ( props == null ) {
+            return;
+        }
+        
+        Iterator itr = props.keySet().iterator();
+        while (itr.hasNext()) {
+            Object key = itr.next(); 
+            Object val = props.get(key); 
+            conn.setRequestProperty(key.toString(), val.toString());
+        }
+    }
+
+    private void postString(HttpURLConnection conn, String body) throws Exception {
+        OutputStream os = null; 
+        try {
+            os = conn.getOutputStream(); 
+            
+            byte[] bytes = (body == null ? "".getBytes("UTF-8") : body.getBytes("UTF-8")); 
+            os.write(bytes, 0, bytes.length); 
+        }
+        finally {
+            try { os.close(); }catch(Throwable t){;} 
         }
     }
 }
