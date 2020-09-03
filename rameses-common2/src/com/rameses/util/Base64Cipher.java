@@ -57,7 +57,12 @@ public final class Base64Cipher
     }
     
     public String encode(Object value) {
-        if (value == null) return null;
+        if (value == null) {
+            return null;
+        }
+        else if ( value instanceof byte[] ) {
+            return encode( (byte[]) value ); 
+        }
 
         ByteArrayOutputStream baos = null;
         ObjectOutputStream oos = null;
