@@ -124,8 +124,12 @@ public class ConfigProperties {
                 groups.put( groupName.trim(), groupMap );
                 continue;
             }
-            String name = s.substring(0, s.indexOf("=")).trim();
-            String value = s.substring( s.indexOf("=")+1 ).trim();
+
+            int idxdelim = s.indexOf("="); 
+            if ( idxdelim <= 0 ) continue; 
+            
+            String name = s.substring(0, idxdelim).trim();
+            String value = s.substring( idxdelim+1 ).trim();
             if( groupMap!=null ) {
                 groupMap.put(name, value );
             } else {
