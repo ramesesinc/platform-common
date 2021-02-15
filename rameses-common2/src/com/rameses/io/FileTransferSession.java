@@ -5,6 +5,7 @@
 package com.rameses.io;
 
 import java.io.File;
+import java.io.OutputStream;
 
 /**
  *
@@ -19,6 +20,8 @@ public abstract class FileTransferSession implements Runnable {
     private boolean cancelled;
     
     private FileTransferSession.Handler handler; 
+    
+    private OutputStream out;
 
     public File getFile() {
         return file;
@@ -68,6 +71,13 @@ public abstract class FileTransferSession implements Runnable {
     
     public void setUserObject( Object userObject ) { 
         // for override for extended properties or configuration 
+    }
+    
+    public OutputStream getOutputStream() {
+        return out; 
+    }
+    public void setOutputStream( OutputStream out ) {
+        this.out = out; 
     }
     
     public static interface Handler { 

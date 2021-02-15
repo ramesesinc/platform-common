@@ -4,6 +4,7 @@
  */
 package com.rameses.ftp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -152,6 +153,43 @@ public class FtpSession {
             handler.onComplete(); 
         }         
     }
+    
+    public void download( String remoteName, ByteArrayOutputStream baos ) {
+        DownloadStreamProxy dsp = null; 
+        try { 
+            login(); 
+            applySettings(); 
+            
+            StringBuilder buff = new StringBuilder(); 
+            String rootdir = conf.getRootDir(); 
+            if ( rootdir != null && rootdir.trim().length() > 0) { 
+                buff.append( rootdir ).append("/"); 
+            } 
+            buff.append( remoteName ); 
+            
+            dsp = new DownloadStreamProxy( baos ); 
+            dsp.setOffset( dsp.getLength() ); 
+            ftp.setRestartOffset( dsp.getOffset() );  
+            ftp.retrieveFile( buff.toString(), dsp );  
+            
+            int respcode = ftp.getReplyCode(); 
+            if ( !FTPReply.isPositiveCompletion(respcode)) {
+                throw new FtpException(ftp.getReplyString(), respcode); 
+            }
+        } catch(IOException ioe) { 
+            throw new RuntimeException(ioe); 
+        } finally {
+            try { dsp.close(); }catch(Throwable t){;} 
+            
+            logout(); 
+        } 
+        
+        Handler handler = getHandler(); 
+        if ( handler != null ) { 
+            handler.onComplete(); 
+        }         
+    }
+    
 
     public void upload( String remoteName, File file ) { 
         upload( remoteName, file, -1 ); 
@@ -328,6 +366,9 @@ public class FtpSession {
         
         private File targetFile; 
         private FileOutputStream fos;
+        private ByteArrayOutputStream baos; 
+        
+        private OutputStream out; 
         
         private long offset; 
         private long nextOffset;
@@ -339,7 +380,14 @@ public class FtpSession {
                 this.fos = new FileOutputStream( targetFile );
             } catch (FileNotFoundException fnfe ) { 
                 throw new RuntimeException( fnfe );
-            }             
+            } 
+            
+            this.out = this.fos; 
+        }
+        
+        DownloadStreamProxy( ByteArrayOutputStream baos ) {
+            this.baos = baos; 
+            this.out = baos;
         }
         
         long getOffset() { return offset; } 
@@ -349,6 +397,10 @@ public class FtpSession {
         }
         
         public long getLength() { 
+            if ( baos != null) {
+                return baos.size(); 
+            }
+            
             if ( !targetFile.exists()) return 0;
             
             RandomAccessFile raf = null; 
@@ -368,18 +420,18 @@ public class FtpSession {
         } 
         
         public void write(int b) throws IOException { 
-            fos.write( b ); 
+            out.write( b ); 
         } 
 
         public void write(byte[] b, int off, int len) throws IOException { 
-            fos.write(b, off, len); 
+            out.write(b, off, len); 
             nextOffset += len; 
             fireOnTransfer( nextOffset ); 
         }
 
         public void close() throws IOException { 
             try { 
-                fos.close(); 
+                out.close(); 
             }catch(Throwable ign){;} 
             
             super.close();             
@@ -387,7 +439,7 @@ public class FtpSession {
 
         public void flush() throws IOException {
             try { 
-                fos.flush(); 
+                out.flush(); 
             }catch(Throwable ign){;} 
 
             super.flush();
