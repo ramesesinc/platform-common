@@ -4,7 +4,7 @@
  */
 package test;
 
-import com.rameses.util.DateBean;
+import java.util.Date;
 import junit.framework.TestCase;
 
 /**
@@ -18,8 +18,13 @@ public class TestDateBean extends TestCase {
     }
 
     public void test0() throws Exception {
-        DateBean b = new DateBean("2018-01-01");
-        System.out.println(b.getDate());
-        System.out.println(b.getMonthEnd());
+//        DateBean b = new DateBean("2018-01-01");
+//        System.out.println(b.getDate());
+//        System.out.println(b.getMonthEnd());
+        
+        Date startdate = java.sql.Date.valueOf("2020-01-01"); 
+        Date enddate   = java.sql.Date.valueOf("2020-12-31"); 
+        long days = com.rameses.functions.DateFunc.daysDiff(startdate, enddate)+1;
+        System.out.println("days -> "+ days);
     }
 }

@@ -42,8 +42,7 @@ public abstract class MachineInfo {
     
     public abstract String getMacAddress() throws Exception;
     
-    private static String getProcessResponse(String command) throws Exception
-    {
+    private static String getProcessResponse(String command) throws Exception {
         Process p = Runtime.getRuntime().exec(command);
         InputStream stdoutStream = new BufferedInputStream(p.getInputStream());
         StringBuffer buffer= new StringBuffer();
@@ -163,42 +162,26 @@ public abstract class MachineInfo {
     public static class LinuxMachineInfo extends MachineInfo {
         private String macAddress;
         public String getMacAddress() throws Exception {
-            //better suggested information.
-            //ifconfig -a | grep HWAddr | awk '{print $1 "\t"$5}'
-            //ifconfig -a eth0 | grep HWAddr | sed '/^.*HWAddr */!d; s///;q'
-            
-            
-            if(macAddress!=null) return macAddress;
-            String localHost = getLocalHost();
-            String ipConfigResponse = null;
-            
+            if ( macAddress != null ) { 
+                return macAddress;
+            }
+
+            String mac = null;
             try {
-                ipConfigResponse = getProcessResponse("ifconfig");
-            }
-            //in Red Hat versions, sometimes it is /sbin/ifconfig
-            catch(IOException ioe) {
-                ipConfigResponse = getProcessResponse("/sbin/ifconfig");
-            }
-            
-            StringTokenizer tokenizer = new StringTokenizer(ipConfigResponse, "\n");
-            String lastMacAddress = null;
-            
-            while( tokenizer.hasMoreTokens() ) {
-                String line = tokenizer.nextToken().trim();
-                
-                // see if line contains MAC address
-                int macAddressPosition = line.indexOf("HWaddr");
-                if(macAddressPosition <= 0) continue;
-                
-                String macAddressCandidate = line.substring(macAddressPosition + 6).trim();
-                // TODO: use a smart regular expression
-                if ( macAddressCandidate.length() == 17 ) {
-                    macAddress = macAddressCandidate;
-                    return macAddress;
-                }
+                mac = new MacInfoLinux().getMachAddress(); 
+                if ( mac != null ) {
+                    macAddress = mac;
+                    System.out.println("Hardware Address -> "+ macAddress);
+                } 
+            } 
+            catch(Throwable t) {
+                System.out.println("WARN: "+ t.getClass().getName() +": "+ t.getMessage());
             }
             
-            throw new ParseException("cannot read MAC address for " + localHost + " from [" + ipConfigResponse + "]", 0);
+            if ( mac == null ) {
+                throw new ParseException("cannot read MAC address", 0);
+            }
+            return mac; 
         }
     }
     
