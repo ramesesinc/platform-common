@@ -198,7 +198,9 @@ public class FtpSession {
     public void upload( String remoteName, File file, long startpos ) {
         InputStreamProxy inp = null; 
         try { 
+            System.out.println("FtpSession.upload: login()");
             login(); 
+            System.out.println("FtpSession.upload: applySettings()");
             applySettings(); 
             
             StringBuilder buff = new StringBuilder();
@@ -209,6 +211,9 @@ public class FtpSession {
             buff.append( remoteName ); 
             
             inp = new InputStreamProxy( file ); 
+            System.out.println("FtpSession.upload: proxying source stream");
+            
+            System.out.println("FtpSession.upload: uploading...");
             if ( inp.upload( ftp, buff.toString(), startpos )) {
                 // do nothing 
                 
@@ -220,6 +225,7 @@ public class FtpSession {
                     throw new RuntimeException(error.getMessage(), error); 
                 } 
             }
+            System.out.println("FtpSession.upload: Done.");
         } finally {
             try { inp.close(); }catch(Throwable t){;} 
             
