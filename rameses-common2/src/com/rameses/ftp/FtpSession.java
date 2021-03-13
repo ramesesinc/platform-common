@@ -52,6 +52,7 @@ public class FtpSession {
         
         try {
             ftp = new FTPClient();
+            System.out.println("FtpSession.connect... "+ conf.getHost() +":"+ conf.getPort()); 
             ftp.connect( conf.getHost(), conf.getPort() ); 
             int respcode = ftp.getReplyCode(); 
             if ( !FTPReply.isPositiveCompletion(respcode)) {
@@ -66,6 +67,7 @@ public class FtpSession {
     
     public void login() {
         try {
+            System.out.println("FtpSession.login... "+ conf.getUser() +":"+ conf.getPassword()); 
             ftp.login( conf.getUser(), conf.getPassword() );  
             if ( FTPReply.isPositiveCompletion( ftp.getReplyCode())) {
                 // authenticated 
