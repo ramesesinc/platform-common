@@ -83,6 +83,7 @@ public class FtpSession {
     
     public void logout() {
         try { 
+            System.out.println("FtpSession.logout...");
             ftp.logout(); 
         } catch(Throwable t){
             //do nothing 
@@ -90,6 +91,7 @@ public class FtpSession {
     }
     public void disconnect() { 
         try { 
+            System.out.println("FtpSession.disconnect...");
             ftp.disconnect(); 
         } catch(Throwable t){
             //do nothing 
@@ -99,6 +101,7 @@ public class FtpSession {
     }
     
     public void deleteFile( String remoteName ) {
+        System.out.println("FtpSession.deleteFile... "+ remoteName);
         InputStreamProxy inp = null; 
         try { 
             login(); 
